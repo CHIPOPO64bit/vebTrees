@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# lyx files
+
+*.lyx
+*.lyx#
+*.lyx~
