@@ -6,9 +6,7 @@
 #define _VEB_H_
 #include <iostream>
 #define _BASE_SIZE 2
-// layer one - methods - done
-// layer two - errors - in process
-// iterators, traits and so on
+
 
 /**
  * NULL: universe size
@@ -121,6 +119,9 @@ class veb {
 	return this->universe;
   }
 
+  /**
+   * Iterator class
+   */
   class Iterator {
 
 	T current_val;
@@ -131,7 +132,7 @@ class veb {
 	typedef T *pointer;
 	typedef std::ptrdiff_t difference_type; // irrelevant here
 	typedef std::bidirectional_iterator_tag iterator_category;
-	Iterator(veb *tree, T current) : tree_ptr(tree), current_val
+	Iterator(const veb *tree, T current) : tree_ptr(tree), current_val
 		(current) {}
 	Iterator &operator++() {
 	  if (current_val != tree_ptr->get_universe_size()) {
@@ -161,7 +162,7 @@ class veb {
 	  return it;
 	}
 
-	T operator*() {
+	value_type operator*() {
 	  return this->current_val;
 	}
 	bool operator==(const Iterator &rhs) const {
@@ -189,9 +190,13 @@ class veb {
 	}
 
   };
+
+  /**
+   * Const Iterator class
+   */
   class ConstIterator {
 	T current_val;
-	veb *tree_ptr;
+	const veb *tree_ptr;
    public:
 	typedef T value_type;
 	typedef const T &reference;
@@ -199,7 +204,7 @@ class veb {
 	typedef std::ptrdiff_t difference_type; // irrelevant here
 	typedef std::bidirectional_iterator_tag iterator_category;
 
-	ConstIterator(veb *tree, T current)
+	ConstIterator(const veb *tree, T current)
 		: tree_ptr(tree), current_val(current) {}
 	ConstIterator &operator++() {
 	  if (current_val != tree_ptr->get_universe_size()) {
@@ -256,9 +261,14 @@ class veb {
 	  return this->tree_ptr;
 	}
   };
+
  public:
   typedef Iterator iterator;
   typedef ConstIterator const_iterator;
+
+  /**
+   * begin, cbegin, end and cend methods
+   */
 
   iterator begin() {
 	return iterator(this, this->minimum());
@@ -298,18 +308,24 @@ class veb {
   bool member(T x) const noexcept;
 
   /**
-   * When the tree is empty, throws exception
+   * When the tree is empty, returns null
    * @return minimum of the tree
    */
   size_t minimum() const noexcept {
+	if (this->is_empty()){
+	  return this->get_universe_size();
+	}
 	return min;
   }
 
   /**
-   * When the tree is empty, throws exception
+   * When the tree is empty, returns null
    * @return maximum of the tree
    */
   size_t maximum() const noexcept {
+	if (this->is_empty()){
+	  return this->get_universe_size();
+	}
 	return max;
   }
 
@@ -345,6 +361,77 @@ class veb {
   * tree's universe
   */
   T predecessor(T x) const noexcept;
+
+  /**
+   * comparison operator
+   * @param rhs veb tree to compare
+   * @return true if they have the same size, and the same elements
+   */
+  bool operator==(const veb& rhs) const{
+	if (this->get_universe_size() != rhs.get_universe_size()){
+	  return false;
+	} else if (this->get_universe_size() == _BASE_SIZE){
+	  if (this->is_empty() != rhs.is_empty()){
+		return false;
+	  } return this->minimum() == rhs.minimum() && this->maximum() == rhs
+	  .maximum();
+	}
+	// compare all elements
+	veb<T> it_lhs = this->cbegin();
+	veb<T> it_rhs = rhs.cbegin();
+	while (it_lhs < this->cend && it_rhs < rhs.cend()){
+	  if (*it_lhs != *it_rhs){
+		return false;
+	  }
+	  ++it_lhs;
+	  ++it_rhs;
+	}
+	return true;
+  }
+//TODO: finish operators: =, copy constructor 
+
+//  /**
+//   * copy assignment operator
+//   * @param rhs veb tree to assign
+//   * @return the new veb
+//   */
+//  veb &operator=(const veb& rhs) {
+//	if (this == &rhs){
+//	  return *this;
+//	}
+//
+//
+//	// init primitives
+//	this->universe = rhs.get_universe_size();
+//	this->high_root = rhs.high_root;
+//	this->low_root = rhs.low_root;
+//	this->min = rhs.min;
+//	this->max = rhs.max;
+//	this->empty = rhs.empty;
+//	this->rhs_bits = rhs.rhs_bits;
+//	this->lhs_bits = rhs.lhs_bits;
+//
+//	// init dynamic
+//	*(this->summary) = *(rhs.summary);
+//	this->delete_cluster();
+//	this->cluster =
+//
+//
+//  }
+
+  /**
+   * operator <<
+   * @param os stream to print the tree in ascending order
+   * @param tree veb tree
+   * @return os
+   */
+  friend std::ostream& operator<<(std::ostream& os, const veb<T> & tree) {
+	for(auto item : tree) os << item << std::endl;
+	return os;
+  }
+
+
+
 
 };
 template<class T>
