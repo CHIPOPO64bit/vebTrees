@@ -9,18 +9,55 @@
 // layer one - methods
 // layer two - errors
 
+/**
+ * NULL: universe size
+ * Complexity of building a new veb(u) = O(u)
+ * 				successor, predecessor, member, delete, insert - O(lg lg(u))
+ * @tparam T universe size
+ */
 template<class T=int>
 class veb {
 
+  /**
+   *  min and max elements.
+   *  min is stored implicitly in the tree which means, it is stored only in
+   *  the field min, max though stored also in the clusters
+   */
   T min;
   T max;
+
   bool empty;
+
+  /**
+   * stores the tree's clusters
+   */
   veb **cluster;
+
+  /**
+   * stores the tree's summary
+   */
   veb *summary;
+
+  /**
+   * the trees size
+   */
   size_t universe;
+
+  /**
+   * least significant bits amount
+   */
   size_t rhs_bits;
+  /**
+   * most significant bits amount
+   */
   size_t lhs_bits;
+  /**
+   * upper root - 2**(lhs)
+   */
   size_t high_root;
+  /**
+   * lower root - 2**(rhs)
+   */
   size_t low_root;
 
   /**
@@ -76,6 +113,13 @@ class veb {
    */
   void empty_insert(T x) noexcept;
 
+  /**
+   * @return universe size
+   */
+  size_t get_universe_size() const noexcept {
+	return this->universe;
+  }
+
  public:
 
   /**
@@ -130,6 +174,20 @@ class veb {
    * @param x element to delete
    */
   void delete_element(T x) noexcept;
+
+  /**
+   * @param x element to find its successor
+   * @return x's successor of x if exists, else null where null is the
+   * tree's universe
+   */
+  T successor(T x) const noexcept;
+
+  /**
+  * @param x element to find its predecessor
+  * @return x's predecessor of x if exists, else null where null is the
+  * tree's universe
+  */
+  T predecessor(T x) const noexcept;
 
 };
 template<class T>
@@ -277,7 +335,7 @@ void veb<T>::delete_element(T x) noexcept {
 		// by finding the maximum summary, and its maximum element
 		T summary_max = this->summary->maximum();
 		T offset = this->cluster[summary_max]->maximum();
-		// convert maximum to cuurrent cluster
+		// convert maximum to current cluster
 		this->max = this->index(summary_max, offset);
 	  }
 	}
@@ -285,6 +343,79 @@ void veb<T>::delete_element(T x) noexcept {
   } else if (x == this->max) {
 	T offset = this->cluster[this->high(x)]->maximum();
 	this->max = this->index(this->high(x), offset);
+  }
+}
+template<class T>
+T veb<T>::successor(const T x) const noexcept {
+  // return null in case of empty tree
+  if (this->is_empty()) {
+	return this->get_universe_size();
+  }
+  // base case
+  if (this->universe == _BASE_SIZE) {
+	if (x == 0 && this->max == 1) {
+	  return 1;
+	}
+	return this->get_universe_size();
+  } else if ((!this->empty) && x < this->min) {
+	return this->min;
+  } else {
+	// check if successor in current (x's) cluster
+	T max_low = this->cluster[this->high(x)]->maximum();
+	// successor in current cluster
+	if ((!this->cluster[this->high(x)]->is_empty())
+		&& this->low(x) < max_low) {
+	  T offset = this->cluster[this->high(x)]->successor(this->low(x));
+	  return this->index(this->high(x), offset);
+	} else {
+	  // find successor of current cluster
+	  T succ_cluster = this->summary->successor(this->high(x));
+	  // return null if does not exist
+	  if (succ_cluster == this->summary->get_universe_size()) {
+		return this->get_universe_size();
+	  }
+	  // find x's successor
+	  T offset = this->cluster[succ_cluster]->minimum();
+	  return this->index(succ_cluster, offset);
+	}
+  }
+}
+template<class T>
+T veb<T>::predecessor(T x) const noexcept {
+  // return null in case of empty tree
+  if (this->is_empty()) {
+	return this->get_universe_size();
+  }
+  // base case
+  if (this->universe == _BASE_SIZE) {
+	if (x == 1 && this->min == 0) {
+	  return 0;
+	}
+	return this->get_universe_size();
+  } else if ((!this->empty) && x > this->max) {
+	return this->max;
+  } else {
+	// check if predecessor in current (x's) cluster
+	T min_low = this->cluster[this->high(x)]->minimum();
+	// predecessor in current cluster
+	if ((!this->cluster[this->high(x)]->is_empty()) && (this->low(x) >
+		min_low)) {
+	  T offset = this->cluster[this->high(x)]->predecessor(this->low(x));
+	  return this->index(this->high(x), offset);
+	} else {
+	  // find predecessor of current cluster
+	  T pred_cluster = this->summary->predecessor(this->high(x));
+	  // return null if does not exist
+	  if (pred_cluster == this->summary->get_universe_size()) {
+		if (x > this->min) {
+		  return this->min;
+		}
+		return this->get_universe_size();
+	  }
+	  // find x's predecessor
+	  T offset = this->cluster[pred_cluster]->maximum();
+	  return this->index(pred_cluster, offset);
+	}
   }
 }
 
