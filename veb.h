@@ -6,8 +6,9 @@
 #define _VEB_H_
 #include <iostream>
 #define _BASE_SIZE 2
-// layer one - methods
-// layer two - errors
+// layer one - methods - done
+// layer two - errors - in process
+// iterators, traits and so on
 
 /**
  * NULL: universe size
@@ -120,7 +121,163 @@ class veb {
 	return this->universe;
   }
 
+  class Iterator {
+
+	T current_val;
+	veb *tree_ptr;
+   public:
+	typedef T value_type;
+	typedef T &reference;
+	typedef T *pointer;
+	typedef std::ptrdiff_t difference_type; // irrelevant here
+	typedef std::bidirectional_iterator_tag iterator_category;
+	Iterator(veb *tree, T current) : tree_ptr(tree), current_val
+		(current) {}
+	Iterator &operator++() {
+	  if (current_val != tree_ptr->get_universe_size()) {
+		current_val = tree_ptr->successor(current_val);
+	  }
+	  return *this;
+	}
+	Iterator operator++(int) {
+	  Iterator it(tree_ptr, current_val);
+	  if (current_val != tree_ptr->get_universe_size()) {
+		current_val = tree_ptr->successor(current_val);
+	  }
+	  return *(this);
+
+	}
+	Iterator &operator--() {
+	  if (current_val != tree_ptr->get_universe_size()) {
+		current_val = tree_ptr->predecessor(current_val);
+	  }
+	  return *this;
+	}
+	Iterator operator--(int) {
+	  Iterator it(tree_ptr, current_val);
+	  if (current_val != tree_ptr->get_universe_size()) {
+		current_val = tree_ptr->predecessor(current_val);
+	  }
+	  return it;
+	}
+
+	T operator*() {
+	  return this->current_val;
+	}
+	bool operator==(const Iterator &rhs) const {
+	  return this->tree_ptr == rhs.tree_ptr &&
+		  this->current_val == rhs.current_val;
+	}
+	bool operator!=(const Iterator &rhs) const {
+	  return this->tree_ptr != rhs.tree_ptr ||
+		  this->current_val != rhs.current_val;
+	}
+	bool operator<(const Iterator &rhs) const {
+	  return this->current_val < rhs.current_val;
+	}
+	bool operator>(const Iterator &rhs) const {
+	  return this->current_val > rhs.current_val;
+	}
+	bool operator<=(const Iterator &rhs) const {
+	  return this->current_val <= rhs.current_val;
+	}
+	bool operator>=(const Iterator &rhs) const {
+	  return this->current_val >= rhs.current_val;
+	}
+	pointer operator->() const {
+	  return this->tree_ptr;
+	}
+
+  };
+  class ConstIterator {
+	T current_val;
+	veb *tree_ptr;
+   public:
+	typedef T value_type;
+	typedef const T &reference;
+	typedef const T *pointer;
+	typedef std::ptrdiff_t difference_type; // irrelevant here
+	typedef std::bidirectional_iterator_tag iterator_category;
+
+	ConstIterator(veb *tree, T current)
+		: tree_ptr(tree), current_val(current) {}
+	ConstIterator &operator++() {
+	  if (current_val != tree_ptr->get_universe_size()) {
+		current_val = tree_ptr->successor(current_val);
+	  }
+	  return *this;
+	}
+	ConstIterator operator++(int) {
+	  ConstIterator it(tree_ptr, current_val);
+	  if (current_val != tree_ptr->get_universe_size()) {
+		current_val = tree_ptr->successor(current_val);
+	  }
+	  return *(this);
+
+	}
+	ConstIterator &operator--() {
+	  if (current_val != tree_ptr->get_universe_size()) {
+		current_val = tree_ptr->predecessor(current_val);
+	  }
+	  return *this;
+	}
+	ConstIterator operator--(int) {
+	  Iterator it(tree_ptr, current_val);
+	  if (current_val != tree_ptr->get_universe_size()) {
+		current_val = tree_ptr->predecessor(current_val);
+	  }
+	  return it;
+	}
+	value_type operator*() const {
+	  return this->current_val;
+	}
+	bool operator==(const ConstIterator &rhs) const {
+	  return this->tree_ptr == rhs.tree_ptr &&
+		  this->current_val == rhs.current_val;
+	}
+	bool operator!=(const ConstIterator &rhs) const {
+	  return this->tree_ptr != rhs.tree_ptr ||
+		  this->current_val != rhs.current_val;
+	}
+	bool operator<(const ConstIterator &rhs) const {
+	  return this->current_val < rhs.current_val;
+	}
+	bool operator>(const ConstIterator &rhs) const {
+	  return this->current_val > rhs.current_val;
+	}
+	bool operator<=(const ConstIterator &rhs) const {
+	  return this->current_val <= rhs.current_val;
+	}
+	bool operator>=(const ConstIterator &rhs) const {
+	  return this->current_val >= rhs.current_val;
+	}
+
+	pointer operator->() const {
+	  return this->tree_ptr;
+	}
+  };
  public:
+  typedef Iterator iterator;
+  typedef ConstIterator const_iterator;
+
+  iterator begin() {
+	return iterator(this, this->minimum());
+  }
+  const_iterator begin() const {
+	return const_iterator(this, this->minimum());
+  }
+  const_iterator cbegin() const {
+	return const_iterator(this, this->minimum());
+  }
+  iterator end() {
+	return iterator(this, this->get_universe_size());
+  }
+  const_iterator end() const {
+	return const_iterator(this, this->get_universe_size());
+  }
+  const_iterator cend() const {
+	return const_iterator(this, this->get_universe_size());
+  }
 
   /**
    * base constructor
