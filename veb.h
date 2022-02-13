@@ -27,16 +27,23 @@ class veb {
   void set_bits_amount() noexcept;
 
   size_t low(T x) const noexcept {
-	return x / this->low_root;
+	return (x & (this->low_root - 1));
   }
   size_t high(T x) const noexcept {
-	return (x & (this->low_root - 1));
+//	std::cout << "high: element: " << x << " high x: "
+//			  << ((x & (~(this->low_root -
+//				  1))) >> this->rhs_bits) << " division: "
+//			  << x / this->low_root << std::endl;
+	return  ((x & (~(this->low_root - 1))) >> this->rhs_bits);
+  }
+  size_t index(T x, T y) const noexcept {
+	return (this->low_root * x) + y;
   }
 
   void swap(T &x, T &y) const noexcept;
 
   void delete_cluster() {
-	for (size_t i = 0; i < this->low_root; ++i) {
+	for (size_t i = 0; i < this->high_root; ++i) {
 	  delete this->cluster[i];
 	}
 	delete[] this->cluster;
@@ -57,20 +64,22 @@ class veb {
   bool is_empty() const noexcept {
 	return this->empty;
   }
+  void delete_element(T x) noexcept;
 
 };
 template<class T>
 veb<T>::veb(size_t size) noexcept(false): empty(true), universe(size) {
-
+  this->set_bits_amount();
   if (size == _BASE_SIZE) {
 	this->cluster = nullptr;
 	this->summary = nullptr;
+	this->min = 0;
+	this->max = 0;
   } else {
-	this->set_bits_amount();
 	this->summary = new veb(this->high_root);
-	this->cluster = new veb *[this->low_root];
-	for (size_t i = 0; i < this->low_root; ++i) {
-	  this->cluster[i] = new veb(this->high_root);
+	this->cluster = new veb *[this->high_root];
+	for (size_t i = 0; i < this->high_root; ++i) {
+	  this->cluster[i] = new veb(this->low_root);
 	}
   }
 }
@@ -99,14 +108,19 @@ veb<T>::~veb() noexcept {
 }
 template<class T>
 bool veb<T>::member(T x) const noexcept {
-  if (this->empty) {
+  if (this->empty || x >= this->universe) {
 	return false;
-  } else if (x == this->min || x == this->max){
+  } else if (x == this->min || x == this->max) {
+//	std::cout << "in member second if: " << this->min << " universe: "
+//														 "" << this->universe
+//			  << std::endl;
 	return true;
-  }
-  else if (this->universe == _BASE_SIZE) {
+  } else if (this->universe == _BASE_SIZE) {
 	return false;
   }
+//  std::cout << "third if , member universe: "
+//			   "" << this->universe << " high x: " << this->high(x)
+//			<< std::endl;
   return this->cluster[this->high(x)]->member(this->low(x));
 }
 template<class T>
@@ -124,12 +138,22 @@ void veb<T>::swap(T &x, T &y) const noexcept {
 template<class T>
 void veb<T>::insert(T x) noexcept {
   // need to handle invalid arguments such as out of bounds insertions
+  if (x >= this->universe) {
+	return; // exception
+  }
   if (this->empty) {
 	this->empty_insert(x);
   } else if (x < this->min) {
+	std::cout << this->min<< " before: "<<std::endl;
 	this->swap(this->min, x);
+	std::cout << this->min<< " after: "<<std::endl;
   }
   if (this->universe > _BASE_SIZE) {
+//	std::cout<< "seg fault universe: " <<this->universe << " x: "<<x<<
+//	" size of cluster: "<<this->low_root<< " high x: "<< this->high(x)<<
+//	std::endl;
+//	std::cout << this->cluster[this->high(x)]->is_empty() << std::endl;
+
 	if (this->cluster[this->high(x)]->is_empty()) {
 	  this->summary->insert(this->high(x));
 	  this->cluster[this->high(x)]->empty_insert(this->low(x));
@@ -140,7 +164,55 @@ void veb<T>::insert(T x) noexcept {
   if (this->max < x) {
 	this->max = x;
   }
+}
 
+template<class T>
+void veb<T>::delete_element(T x) noexcept {
+//  std::cout<< "low root: "<<this->low_root<<std::endl;
+
+  if ((!this->empty) && (this->min == this->max)) {
+	this->empty = true;
+	return;
+  } else if (this->universe == _BASE_SIZE) {
+	if (x == 0) {
+	  this->min = 1;
+	} else {
+	  this->max = this->min;
+	}
+//	std::cout << " min: " << this->min << std::endl;
+	return;
+  } else if (x == this->min) {
+
+	T first_cluster = this->summary->minimum();
+
+	x = this->index(first_cluster, this->cluster[first_cluster]->minimum
+		());
+	std::cout<< x << " x after change"<< " universe size: "<<
+	this->universe <<std::endl;
+	this->min = x;
+//	std::cout << x << std::endl;
+  }
+//  std::cout<< "high x: "<< this->high(x)<< " low x: "<< this->low(x)
+//  <<std::endl;
+  this->cluster[this->high(x)]->delete_element(this->low(x));
+  if (this->cluster[this->high(x)]->is_empty()) {
+	this->summary->delete_element(this->high(x));
+	if (x == this->max) {
+	  std::cout << "in here" << std::endl;
+	  if (this->summary->is_empty()) {
+		this->max = this->min;
+	  } else {
+		T summary_max = this->summary->maximum();
+//		std::cout<< "summary max: "<<summary_max<<std::endl;
+		T offset = this->cluster[summary_max]->maximum();
+		this->max = this->index(summary_max, offset);
+	  }
+	}
+  } else if (x == this->max) {
+//	std::cout << "here max 2" << std::endl;
+	T offset = this->cluster[this->high(x)]->maximum();
+	this->max = this->index(this->high(x), offset);
+  }
 }
 
 #endif //_VEB_H_
