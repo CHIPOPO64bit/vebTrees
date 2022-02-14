@@ -106,6 +106,7 @@ class veb {
 	}
 	delete[] this->cluster;
   }
+
   /**
    * insert x to empty tree
    * @param x element to insert
@@ -113,11 +114,10 @@ class veb {
   void empty_insert(T x) noexcept;
 
   /**
-   * @return universe size
+   * copy by value rhs arguments to this
+   * @param rhs element to copy
    */
-  size_t get_universe_size() const noexcept {
-	return this->universe;
-  }
+  void copy(const veb& rhs) noexcept(false);
 
   /**
    * Iterator class
@@ -296,6 +296,11 @@ class veb {
   veb(size_t size) noexcept(false);
 
   /**
+   * copy constructor
+   * @param rhs element to copy
+   */
+  veb(const veb& rhs) noexcept(false);
+  /**
    * Destructor
    */
   ~veb() noexcept;
@@ -377,47 +382,22 @@ class veb {
 	  .maximum();
 	}
 	// compare all elements
-	veb<T> it_lhs = this->cbegin();
-	veb<T> it_rhs = rhs.cbegin();
-	while (it_lhs < this->cend && it_rhs < rhs.cend()){
-	  if (*it_lhs != *it_rhs){
-		return false;
-	  }
-	  ++it_lhs;
-	  ++it_rhs;
-	}
-	return true;
+	return std::equal(this->cbegin(), this->cend(), rhs.cbegin(), rhs.cend());
   }
-//TODO: finish operators: =, copy constructor 
 
-//  /**
-//   * copy assignment operator
-//   * @param rhs veb tree to assign
-//   * @return the new veb
-//   */
-//  veb &operator=(const veb& rhs) {
-//	if (this == &rhs){
-//	  return *this;
-//	}
-//
-//
-//	// init primitives
-//	this->universe = rhs.get_universe_size();
-//	this->high_root = rhs.high_root;
-//	this->low_root = rhs.low_root;
-//	this->min = rhs.min;
-//	this->max = rhs.max;
-//	this->empty = rhs.empty;
-//	this->rhs_bits = rhs.rhs_bits;
-//	this->lhs_bits = rhs.lhs_bits;
-//
-//	// init dynamic
-//	*(this->summary) = *(rhs.summary);
-//	this->delete_cluster();
-//	this->cluster =
-//
-//
-//  }
+  /**
+ * @return universe size
+ */
+  size_t get_universe_size() const noexcept {
+	return this->universe;
+  }
+
+  /**
+   * copy assignment operator
+   * @param rhs veb tree to assign
+   * @return the new veb
+   */
+  veb<T> &operator=(const veb& rhs);
 
   /**
    * operator <<
@@ -429,8 +409,6 @@ class veb {
 	for(auto item : tree) os << item << std::endl;
 	return os;
   }
-
-
 
 
 };
@@ -661,6 +639,48 @@ T veb<T>::predecessor(T x) const noexcept {
 	  return this->index(pred_cluster, offset);
 	}
   }
+}
+
+template<class T>
+veb<T> &veb<T>::operator=(const veb &rhs) {
+  if (this == &rhs){
+	return *this;
+  }
+  // delete dynamic data
+  this->delete_cluster();
+  delete this->summary;
+  this->cluster = nullptr;
+  this->summary = nullptr;
+
+  // copy data
+  this->copy(rhs);
+  return *this;
+}
+
+template<class T>
+veb<T>::veb(const veb& rhs) noexcept(false){
+  this->copy(rhs);
+}
+template<class T>
+void veb<T>::copy(const veb &rhs) noexcept(false){
+  	// copy primitives
+	this->universe = rhs.universe;
+	this->high_root = rhs.high_root;
+	this->low_root = rhs.low_root;
+	this->min = rhs.min;
+	this->max = rhs.max;
+	this->empty = rhs.empty;
+	this->rhs_bits = rhs.rhs_bits;
+	this->lhs_bits = rhs.lhs_bits;
+
+	// copy dynamics
+	if (this->universe != _BASE_SIZE) {
+	  this->summary = new veb<T>(*(rhs.summary));
+	  this->cluster = new veb<T> *[this->high_root];
+	  for (size_t i = 0; i < this->high_root; ++i) {
+		this->cluster[i] = new veb<T>(*(rhs.cluster[i]));
+	  }
+	}
 }
 
 #endif //_VEB_H_
